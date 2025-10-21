@@ -1,0 +1,251 @@
+
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+const schema = yup.object({
+  name: yup.string().required("Le nom est obligatoire"),
+  phone: yup
+    .string()
+    .matches(/^6[0-9]{8}$/, "Le numéro doit commencer par 6 et contenir exactement 9 chiffres")
+    .required("Le numéro de téléphone est obligatoire"),
+  email: yup
+    .string()
+    .email("Adresse e-mail invalide")
+    .matches(
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+    "Veuillez entrer une adresse e-mail valide (ex: exemple@mail.com)"
+    )
+    .required("L'adresse e-mail est obligatoire"),
+
+  meterType: yup
+    .string()
+    .oneOf(["prepaid", "postpaid"], "Type de compteur invalide")
+    .required("Veuillez sélectionner le type de compteur"),
+  meterNumber: yup
+    .string()
+    .required("Le numéro de compteur est obligatoire")
+    .when("meterType", {
+      is: "prepaid",
+      then: (schema) =>
+            schema.matches(/^01\d{10}$/,"Un numéro de compteur prépayé doit commencer par 01 et contenir 12 chiffres"
+      ),
+      otherwise: (schema) =>
+        schema.matches(/^200\d{9}$/, "Un numero de compteur postpayé doit commencer par 200 et contenir 12 chiffres"),
+    }),
+  address: yup.string().required("L'adresse est obligatoire"),
+  usage: yup
+    .string()
+    .oneOf(
+      ["domicile", "entreprise", "campagne", "appartement"],
+      "Domaine d'utilisation invalide"
+    )
+    .required("Veuillez sélectionner un domaine d'utilisation"),
+});
+
+type FormData = yup.InferType<typeof schema>;
+
+export default function Enrolement() { 
+
+  const navigate = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: yupResolver(schema),
+  });
+
+  const onSubmit = async (data: FormData) => {
+  alert("Formulaire soumis avec succès !");
+
+  const dateActuelle = new Date().toLocaleString("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+
+  const enrolements = JSON.parse(localStorage.getItem("enrolements") || "[]");
+  enrolements.push({   
+    name: data.name,
+    phone: data.phone,
+    email: data.email,
+    meterType: data.meterType,
+    meterNumber: data.meterNumber,
+    address: data.address,
+    usage: data.usage,
+    date: dateActuelle,
+
+  });
+  localStorage.setItem("enrolements", JSON.stringify(enrolements));
+
+  reset();
+  navigate("/confirmation", { state: { nomClient: data.name } });
+
+  try {
+    await fetch("https://script.google.com/macros/s/AKfycbxR6OYEJMGpV9iyNQYWsJHsaIOpHTIZ3Q-Rvh0fmjEo95uXfFtLGqKS48UDd0k0iQlk/exec", {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch (error) {
+    console.error("Erreur lors de l’envoi :", error);
+  }
+};
+
+
+
+
+  const meterType = watch("meterType");
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-700">
+          Formulaire d’enrôlement
+        </h2>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Nom */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">Nom</label>
+            <input
+              type="text"
+              {...register("name")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Entrez votre nom"
+            />
+            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+          </div>
+
+          {/* Téléphone */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">Téléphone</label>
+            <input
+              type="tel"
+              {...register("phone")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Ex:699640151"
+            />
+            {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">Email</label>
+            <input
+              type="email"
+              {...register("email")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="exemple@email.com"
+            />
+            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+          </div>
+
+          {/* Type de compteur */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">Type de compteur</label>
+            <select
+              {...register("meterType")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">-- Sélectionnez --</option>
+              <option value="prepaid">Prépayé</option>
+              <option value="postpaid">Postpayé</option>
+            </select>
+            {errors.meterType && (
+              <p className="text-red-500 text-sm">{errors.meterType.message}</p>
+            )}
+          </div>
+
+          {/* Numéro de compteur */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">
+              Numéro de compteur{" "}
+              {meterType === "prepaid"
+                ? "(doit commencer par 01)"
+                : meterType === "postpaid"
+                ? "(doit commencer par 200)"
+                : ""}
+            </label>
+            <input
+              type="text"
+              {...register("meterNumber")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder={
+                meterType === "prepaid"
+                  ? "Ex: 01XXXXXX"
+                  : meterType === "postpaid"
+                  ? "Ex: 200XXXXXX"
+                  : "Entrez le numéro"
+              }
+            />
+            {errors.meterNumber && (
+              <p className="text-red-500 text-sm">{errors.meterNumber.message}</p>
+            )}
+          </div>
+
+          {/* Adresse */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">Adresse (quartier)</label>
+            <input
+              type="text"
+              {...register("address")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Entrez votre quartier"
+            />
+            {errors.address && (
+              <p className="text-red-500 text-sm">{errors.address.message}</p>
+            )}
+          </div>
+
+          {/* Domaine d'utilisation */}
+          <div>
+            <label className="block font-medium mb-1 text-gray-700">
+              Domaine d’utilisation
+            </label>
+            <select
+              {...register("usage")}
+              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">-- Sélectionnez --</option>
+              <option value="domicile">Domicile</option>
+              <option value="entreprise">Entreprise</option>
+              <option value="campagne">Campagne</option>
+              <option value="appartement">Appartement</option>
+            </select>
+            {errors.usage && (
+              <p className="text-red-500 text-sm">{errors.usage.message}</p>
+            )}
+          </div>
+
+          {/* Bouton submit */}
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Soumettre
+  
+          </button>
+
+          <button
+           onClick={() => navigate("/")}
+           className="w-full bg-yellow-400 text-white font-semibold py-2 rounded-lg hover:bg-yellow-600 transition"
+          >
+          Retour a l'acceuil
+          </button>
+          
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
