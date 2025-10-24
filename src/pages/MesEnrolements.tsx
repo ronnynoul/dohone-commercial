@@ -62,7 +62,7 @@ export default function MesEnrolements() {
     });
 
     const fileName = prompt("Entrez le nom du fichier PDF :", "MesEnrolements");
-    doc.save(`${fileName || "MesEnrolements"}.pdf`);
+    doc.save(`${fileName || "Mes Enrolements"}.pdf`);
   };
 
   return (
