@@ -1,8 +1,8 @@
-
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { supabase } from "../supabaseClients"; 
 
 const schema = yup.object({
   name: yup.string().required("Le nom est obligatoire"),
@@ -46,8 +46,7 @@ const schema = yup.object({
 
 type FormData = yup.InferType<typeof schema>;
 
-export default function Enrolement() { 
-
+export default function Enrolement() {
   const navigate = useNavigate();
 
   const {
@@ -60,14 +59,10 @@ export default function Enrolement() {
     resolver: yupResolver(schema),
   });
 
+  const meterType = watch("meterType");
+
   const onSubmit = async (data: FormData) => {
-  alert("Formulaire soumis avec succès !");
-
-  const dateActuelle = new Date().toLocaleString("fr-FR", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
-
+  alert("Formulaire soumis avec succès !");  
   const enrolements = JSON.parse(localStorage.getItem("enrolements") || "[]");
   enrolements.push({   
     name: data.name,
@@ -77,42 +72,63 @@ export default function Enrolement() {
     meterNumber: data.meterNumber,
     address: data.address,
     usage: data.usage,
-    date: dateActuelle,
+    date: new Date().toLocaleString("fr-FR"),
 
   });
   localStorage.setItem("enrolements", JSON.stringify(enrolements));
 
-  reset();
-  navigate("/confirmation", { state: { nomClient: data.name } });
+    try {
+      const { error } = await supabase.from("enrolements").insert([
+        {
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          meterType: data.meterType,
+          meterNumber: data.meterNumber,
+          address: data.address,
+          usage: data.usage,
+ 
+        },
+      ]);
 
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycbxR6OYEJMGpV9iyNQYWsJHsaIOpHTIZ3Q-Rvh0fmjEo95uXfFtLGqKS48UDd0k0iQlk/exec", {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-  } catch (error) {
-    console.error("Erreur lors de l’envoi :", error);
-  }
-};
+      if (error) {
+        console.error("Supabase error:", error);
+        alert("Error while saving data: " + error.message);
+        return;
+      }
+        const localRow = {
+        id: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        nomClient: data.name,
+        numeroCompteur: data.meterNumber,
+        typeCompteur: data.meterType,
+        quartier: data.address,
+        telephone: data.phone,
+        email: data.email,
+        date: new Date().toLocaleString("fr-FR"),
+      };
 
+      const existing = JSON.parse(localStorage.getItem("enrolements_local") || "[]");
+      existing.unshift(localRow);
 
-
-
-  const meterType = watch("meterType");
+      reset();
+      navigate("/confirmation", { state: { nomClient: data.name } });
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      alert("Unexpected error occurred.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6 text-gray-700">
+        <h2 className="text-2xl not-first-of-type:font-bold text-center mb-6 text-gray-700">
           Formulaire d’enrôlement
         </h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Nom */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">Nom</label>
+            <label className="block font-semibold mb-1 text-gray-700">Nom</label>
             <input
               type="text"
               {...register("name")}
@@ -124,7 +140,7 @@ export default function Enrolement() {
 
           {/* Téléphone */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">Téléphone</label>
+            <label className="block font-semibold mb-1 text-gray-700">Téléphone</label>
             <input
               type="tel"
               {...register("phone")}
@@ -136,7 +152,7 @@ export default function Enrolement() {
 
           {/* Email */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">Email</label>
+            <label className="block font-semibold mb-1 text-gray-700">Email</label>
             <input
               type="email"
               {...register("email")}
@@ -148,7 +164,7 @@ export default function Enrolement() {
 
           {/* Type de compteur */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">Type de compteur</label>
+            <label className="block font-semibold mb-1 text-gray-700">Type de compteur</label>
             <select
               {...register("meterType")}
               className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -164,7 +180,7 @@ export default function Enrolement() {
 
           {/* Numéro de compteur */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">
+            <label className="block font-semibold mb-1 text-gray-700">
               Numéro de compteur{" "}
               {meterType === "prepaid"
                 ? "(doit commencer par 01)"
@@ -191,7 +207,7 @@ export default function Enrolement() {
 
           {/* Adresse */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">Adresse (quartier)</label>
+            <label className="block font-semibold mb-1 text-gray-700">Adresse (quartier)</label>
             <input
               type="text"
               {...register("address")}
@@ -205,7 +221,7 @@ export default function Enrolement() {
 
           {/* Domaine d'utilisation */}
           <div>
-            <label className="block font-medium mb-1 text-gray-700">
+            <label className="block font-semibold mb-1 text-gray-700">
               Domaine d’utilisation
             </label>
             <select
@@ -237,15 +253,9 @@ export default function Enrolement() {
            className="w-full bg-yellow-400 text-white font-semibold py-2 rounded-lg hover:bg-yellow-600 transition"
           >
           Retour a l'acceuil
-          </button>
-          
+          </button>  
         </form>
       </div>
     </div>
   );
 }
-
-
-
-
-

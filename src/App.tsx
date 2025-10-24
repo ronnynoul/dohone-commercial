@@ -4,6 +4,9 @@ import Enrolement from './pages/Enrolement'
 import ListeEnrollements from './pages/ListeEnrollements'
 import Confirmation from './pages/Confirmation'
 import Dashboard from "./pages/Dashboard"
+import MesEnrolements from "./pages/MesEnrolements"
+
+
 
 
 function App() {
@@ -16,6 +19,9 @@ function App() {
         <Route path="/liste" element={<ListeEnrollements />} />
         <Route path="/confirmation" element={<Confirmation />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/mes-enrolements" element={<MesEnrolements />} />
+
+
       </Routes>
     </div>
   )

@@ -1,189 +1,122 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Users, Zap, Plug, BarChart3, ClipboardEdit, Menu } from "lucide-react";
+import { supabase } from "../supabaseClients";
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   CartesianGrid,
+  ResponsiveContainer,
 } from "recharts";
 
-interface Enrollment {
-  name: string;
-  phone: string;
-  email: string;
-  meterType: "prepaid" | "postpaid";
-  meterNumber: string;
-  address: string;
-  usage: string;
-  date: string;
-}
-
-interface ChartData {
-  date: string;
-  total: number;
-}
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState({ total: 0, prepaid: 0, postpaid: 0 });
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [prepaidCount, setPrepaidCount] = useState(0);
+  const [postpaidCount, setPostpaidCount] = useState(0);
+  const [todayCount, setTodayCount] = useState(0);
+  const [chartData, setChartData] = useState<{ date: string; count: number }[]>(
+    []
+  );
 
-  const loadData = () => {
-    const data: Enrollment[] = JSON.parse(localStorage.getItem("enrolements") || "[]");
+  const fetchData = async () => {
+    const { data, error } = await supabase.from("enrolements").select("*");
 
-    const prepaidCount = data.filter((d) => d.meterType === "prepaid").length;
-    const postpaidCount = data.filter((d) => d.meterType === "postpaid").length;
+    if (error) {
+      console.error("Erreur lors du chargement :", error);
+      return;
+    }
 
-    const grouped: Record<string, number> = data.reduce((acc, curr) => {
-      const date = curr.date.split(" à ")[0];
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    if (data) {
+      setTotal(data.length);
+      setPrepaidCount(data.filter((d) => d.meterType === "prepaid").length);
+      setPostpaidCount(data.filter((d) => d.meterType === "postpaid").length);
 
-    const formatted: ChartData[] = Object.entries(grouped).map(([date, total]) => ({
-      date,
-      total,
-    }));
+      const today = new Date().toISOString().split("T")[0];
+      setTodayCount(
+        data.filter((d) => d.created_at.startsWith(today)).length
+      );
 
-    setStats({ total: data.length, prepaid: prepaidCount, postpaid: postpaidCount });
-    setChartData(formatted);
+      // Données du graphique par jour
+      const grouped: Record<string, number> = {};
+      data.forEach((d) => {
+        const dateKey = d.created_at.split("T")[0];
+        grouped[dateKey] = (grouped[dateKey] || 0) + 1;
+      });
+
+      const formattedData = Object.entries(grouped)
+        .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+        .map(([date, count]) => ({ date, count }));
+
+      setChartData(formattedData);
+    }
   };
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 15000);
-    return () => clearInterval(interval);
+    fetchData();
+
+    const channel = supabase
+      .channel("realtime-enrolements")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "enrolements" },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar responsive */}
-      <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          <BarChart3 className="text-blue-600" size={28} />
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-            Dashboard Enrôlement
-          </h1>
-        </div>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
+      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+        Tableau de bord des enrôlements
+      </h1>
 
-        {/* Menu desktop */}
-        <div className="hidden md:flex gap-4">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition"
-          >
-            <ClipboardEdit size={18} />
-            Accueil
-          </button>
-          <button
-            onClick={loadData}
-            className="flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition"
-          >
-            <BarChart3 size={18} />
-            Actualiser
-          </button>
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-6xl mb-10">
+        <div className="bg-blue-100 p-5 rounded-xl shadow text-center">
+          <h2 className="text-lg font-semibold text-blue-700">Total</h2>
+          <p className="text-2xl font-bold text-blue-900 mt-2">{total}</p>
         </div>
-
-        {/* Menu mobile */}
-        <div className="md:hidden relative">
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
-          >
-            <Menu size={24} />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg flex flex-col gap-2 p-2 z-50">
-              <button
-                onClick={() => { navigate("/"); setMenuOpen(false); }}
-                className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-50 transition"
-              >
-                <ClipboardEdit size={16} /> Accueil
-              </button>
-              <button
-                onClick={() => { loadData(); setMenuOpen(false); }}
-                className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 transition"
-              >
-                <BarChart3 size={16} /> Actualiser
-              </button>
-            </div>
-          )}
+        <div className="bg-green-100 p-5 rounded-xl shadow text-center">
+          <h2 className="text-lg font-semibold text-green-700">Prépayés</h2>
+          <p className="text-2xl font-bold text-green-900 mt-2">{prepaidCount}</p>
         </div>
-      </nav>
+        <div className="bg-yellow-100 p-5 rounded-xl shadow text-center">
+          <h2 className="text-lg font-semibold text-yellow-700">Postpayés</h2>
+          <p className="text-2xl font-bold text-yellow-900 mt-2">{postpaidCount}</p>
+        </div>
+        <div className="bg-purple-100 p-5 rounded-xl shadow text-center">
+          <h2 className="text-lg font-semibold text-purple-700">Aujourd'hui</h2>
+          <p className="text-2xl font-bold text-purple-900 mt-2">{todayCount}</p>
+        </div>
+      </div>
 
-      {/* Contenu principal */}
-      <div className="p-4 sm:p-8">
-        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-6 text-center">
-          Statistiques en temps réel
+      {/* Graphique évolutif */}
+      <div className="bg-white p-6 rounded-2xl shadow w-full max-w-6xl">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">
+          Évolution des enrôlements
         </h2>
-
-        {/* Cartes de stats responsive */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-xl transition">
-            <Users className="mx-auto text-blue-500 mb-2" size={36} />
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">{stats.total}</h2>
-            <p className="text-gray-500">Total des enrôlements</p>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-xl transition">
-            <Zap className="mx-auto text-yellow-500 mb-2" size={36} />
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">{stats.prepaid}</h2>
-            <p className="text-gray-500">Compteurs prépayés</p>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-xl transition">
-            <Plug className="mx-auto text-green-500 mb-2" size={36} />
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">{stats.postpaid}</h2>
-            <p className="text-gray-500">Compteurs postpayés</p>
-          </div>
-        </div>
-
-        {/* Graphique responsive */}
-        <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4 text-center">
-            Évolution des enrôlements
-          </h3>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" stroke="#6b7280" />
-                <YAxis allowDecimals={false} stroke="#6b7280" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "10px",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-gray-500 text-center py-10">
-              Aucune donnée à afficher pour le moment.
-            </p>
-          )}
-        </div>
-
-        <p className="text-sm text-gray-400 text-center mt-4">
-          Données actualisées automatiquement toutes les 15 secondes ⟳
-        </p>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+            <Tooltip />
+            <Bar
+              dataKey="count"
+              fill="#3B82F6"
+              radius={[6, 6, 0, 0]}
+              isAnimationActive={true}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
