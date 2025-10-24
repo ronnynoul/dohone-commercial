@@ -132,7 +132,7 @@ export default function Enrolement() {
             <input
               type="text"
               {...register("name")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Entrez votre nom"
             />
             {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
@@ -144,7 +144,7 @@ export default function Enrolement() {
             <input
               type="tel"
               {...register("phone")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Ex:699640151"
             />
             {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
@@ -156,7 +156,7 @@ export default function Enrolement() {
             <input
               type="email"
               {...register("email")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="exemple@email.com"
             />
             {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
@@ -167,7 +167,7 @@ export default function Enrolement() {
             <label className="block font-semibold mb-1 text-gray-700">Type de compteur</label>
             <select
               {...register("meterType")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             >
               <option value="">-- Sélectionnez --</option>
               <option value="prepaid">Prépayé</option>
@@ -191,7 +191,7 @@ export default function Enrolement() {
             <input
               type="text"
               {...register("meterNumber")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder={
                 meterType === "prepaid"
                   ? "Ex: 01XXXXXX"
@@ -211,7 +211,7 @@ export default function Enrolement() {
             <input
               type="text"
               {...register("address")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Entrez votre quartier"
             />
             {errors.address && (
@@ -226,7 +226,7 @@ export default function Enrolement() {
             </label>
             <select
               {...register("usage")}
-              className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             >
               <option value="">-- Sélectionnez --</option>
               <option value="domicile">Domicile</option>

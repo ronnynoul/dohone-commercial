@@ -80,7 +80,7 @@ export default function ListeEnrolements() {
         placeholder="Rechercher par nom, adresse ou compteur..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full sm:max-w-lg max-w-[90%] mb-6 px-4 py-2 border border-gray-300 rounded-full shadow-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+        className="w-full sm:max-w-lg max-w-[90%] mb-6 px-4 py-2 border border-gray-300  bg-white text-gray-800 placeholder-gray-400 rounded-full shadow-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
       />
 
       {/* Liste */}
